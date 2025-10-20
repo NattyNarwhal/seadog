@@ -51,6 +51,13 @@ fail:
 	return -1;
 }
 
+void deinit_dawg(Dawg *dawg)
+{
+	if (dawg->file) {
+		fclose(dawg->file);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	Dawg dawg;
@@ -59,5 +66,6 @@ int main(int argc, char **argv)
 	for (i = 2; i < argc; i++) {
 		printf("%s? %d\n", argv[i], lookup(&dawg, 1, argv[i]));
 	}
+	deinit_dawg(&dawg);
 	return 0;
 }
