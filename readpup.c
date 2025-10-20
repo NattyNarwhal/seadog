@@ -2,6 +2,7 @@
 #if __STDC_VERSION__ >= 199901L
 # include <stdint.h>
 #else
+# include <limits.h>
 /* for the C89 fans on decrepit architectures */
 # if UINT_MAX == 0xFFFFFFFF
 typedef unsigned int uint32_t;
