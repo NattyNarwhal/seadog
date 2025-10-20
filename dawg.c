@@ -16,11 +16,13 @@ typedef unsigned long uint32_t;
 #define DAWG_FINAL (1 << 5)
 #define DAWG_EOL (1 << 6)
 
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 static inline uint32_t load32le(const unsigned char *src)
 {
 	return ((uint32_t)src[0] << 0) | ((uint32_t)src[1] << 8)
 	     | ((uint32_t)src[2] << 16) |((uint32_t)src[3] << 24);
 }
+#endif
 
 static int dawg_lookup_index(Dawg *dawg, int index, const char *string)
 {
