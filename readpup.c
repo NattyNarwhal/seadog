@@ -1,5 +1,14 @@
 #include <stdio.h>
-#include <stdint.h>
+#if __STDC_VERSION__ >= 199901L
+# include <stdint.h>
+#else
+/* for the C89 fans on decrepit architectures */
+# if UINT_MAX == 0xFFFFFFFF
+typedef unsigned int uint32_t;
+# elif ULONG_MAX == 0xFFFFFFFF
+typedef unsigned long uint32_t;
+# endif
+#endif
 
 typedef struct Dawg {
 	FILE *file;
@@ -9,9 +18,15 @@ typedef struct Dawg {
 #define DAWG_FINAL (1 << 5)
 #define DAWG_EOL (1 << 6)
 
+static inline uint32_t load32le(const unsigned char *src)
+{
+	return ((uint32_t)src[0] << 0) | ((uint32_t)src[1] << 8) | ((uint32_t)src[2] << 16) |
+	       ((uint32_t)src[3] << 24);
+}
+
 int lookup(Dawg *dawg, int index, const char *string)
 {
-	int word; /* [iiii_iiii...]_iefc_cccc (2-4 bytes) */
+	uint32_t word; /* [iiii_iiii...]_iefc_cccc (2-4 bytes) */
 	char character;
 	if (0 != fseek(dawg->file, index * dawg->word_size, SEEK_SET)) {
 		return -1;
@@ -21,7 +36,9 @@ int lookup(Dawg *dawg, int index, const char *string)
 		if (1 == fread(&word, 1, dawg->word_size, dawg->file)) {
 			return -1;
 		}
-		/* (swap on big) */
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+		word = load32le((const unsigned char*)&word);
+#endif
 		index = word >> 7;
 		character = (word & 0x1F) + 0x60; /* 26 -> 0x7A ('z') */
 		if (string[0] == character && string[1] == '\0' && (word & DAWG_FINAL)) {
