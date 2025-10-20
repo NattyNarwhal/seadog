@@ -56,6 +56,7 @@ int init_dawg_file(Dawg *dawg, const char *filename)
 	if (!dawg->file) {
 		goto fail;
 	}
+	/* first byte (because LE) is DAWG_EOL | DAWG_EOL | byte_size */
 	dawg->word_size = fgetc(dawg->file) & 0x7; /* 2-4 */
 	if (dawg->word_size == EOF) {
 		goto fail;
