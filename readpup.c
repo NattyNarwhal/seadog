@@ -33,12 +33,29 @@ int lookup(Dawg *dawg, int index, const char *string)
 	return 0;
 }
 
+int init_dawg_file(Dawg *dawg, const char *filename)
+{
+	dawg->file = fopen(filename, "rb");
+	if (!dawg->file) {
+		goto fail;
+	}
+	dawg->word_size = fgetc(dawg->file) & 0x7; /* 2-4 */
+	if (dawg->word_size == EOF) {
+		goto fail;
+	}
+	return 0;
+fail:
+	if (dawg->file) {
+		fclose(dawg->file);
+	}
+	return -1;
+}
+
 int main(int argc, char **argv)
 {
 	Dawg dawg;
 	int i;
-	dawg.file = fopen(argv[1], "rb");
-	dawg.word_size = fgetc(dawg.file) & 0x7; /* 2-4 */
+	init_dawg_file(&dawg, argv[1]);
 	for (i = 2; i < argc; i++) {
 		printf("%s? %d\n", argv[i], lookup(&dawg, 1, argv[i]));
 	}
