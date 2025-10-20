@@ -1,0 +1,4 @@
+*.pup
+*.o
+readpup
+*.dSYM
