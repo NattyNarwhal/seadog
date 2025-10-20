@@ -14,8 +14,18 @@
 import sys
 import time
 import struct
+import argparse
+import re
 
-DICTIONARY = sys.argv[1]
+parser = argparse.ArgumentParser(prog="dawg",
+                                 description="Generate a directed acyclic word graph in a compact form")
+parser.add_argument("filename")
+parser.add_argument("-m", "--minimum", type=int, help="Minimum length of a word", default=1)
+parser.add_argument("-M", "--maximum", type=int, help="Maximum length of a word", default=32)
+parser.add_argument("-o", "--output", help="Output to the file (.pup recommended extension)")
+args = parser.parse_args()
+
+letters = re.compile(r"^[a-z]+$")
 
 # This class represents a node in the directed acyclic word graph (DAWG). It
 # has a list of edges to other nodes. It has functions for testing whether it
@@ -81,8 +91,8 @@ class Dawg:
 
     def insert( self, word ):
         if word <= self.previousWord:
-            raise Exception("Error: Words must be inserted in alphabetical " +
-                "order.")
+            raise Exception("Error: Inserted {0} after {1}; must be inserted in alphabetical order." \
+                    .format(word, self.previousWord))
 
         # find common prefix between word and previous word
         commonPrefix = 0
@@ -185,6 +195,8 @@ class Dawg:
         processedElements = []
         for _, element in elements.items():
             char = (str.encode(element[0])[0] - 0x60) if len(element[0]) else 0
+            if char > 26 or char < 0:
+                raise Exception("Can't handle characters beyond a-z, handled {}".format(char))
             nodeId = element[1]
             index = nodeFirstEdgeDict[nodeId + 1] if nodeId > 0 else 0
             final = element[2]
@@ -203,9 +215,25 @@ class Dawg:
         index = (word & 0xffffff80) >> 7
         print("{4:X}: {0} {1} {2} {3}".format(char, final, eol, index, word))
 
+def should_include(word):
+    return len(word) >= args.minimum and len(word) <= args.maximum and letters.match(word)
+
 dawg = Dawg()
 WordCount = 0
-words = open(DICTIONARY, "rt").read().split()
+words = open(args.filename, "rt") \
+    .read() \
+    .split()
+# The word must be lower case to reduce the character range.
+# Skip characters that we can't represent by default;
+# perhaps we can provide a mapping table to use the rest of them
+words = list(
+        set(
+            filter(should_include,
+                   map(str.lower, words)
+                   )
+            )
+        )
+# Sort after filtering characters we don't want
 words.sort()
 start = time.time()    
 for word in words:
@@ -219,23 +247,22 @@ EdgeCount = dawg.edgeCount()
 print("Read {0} words into {1} nodes and {2} edges".format(
     WordCount, dawg.nodeCount(), EdgeCount))
 
-dawg.renumber()
-words = dawg.encode_words()
-# for word in words:
-#     Dawg.decode_word(word)
-# print(len(words) * 4)
-
-dawg_file = open(DICTIONARY + ".pup", "wb")
-byte_size = 4
-if EdgeCount < 0x1FFFF:
-    byte_size = 3
-elif EdgeCount < 0x1FF:
-    byte_size = 2
-print("Will be {0} bytes ({1} byte words)".format(EdgeCount * byte_size, byte_size))
-
-# first byte is final/EOL but also byte size
-words[0] = words[0] | byte_size
-for word in words:
-    b = struct.pack("<I", word)
-    dawg_file.write(b[0:byte_size])
-dawg_file.close()
+if args.output:
+    dawg.renumber()
+    words = dawg.encode_words()
+    # for word in words:
+    #     Dawg.decode_word(word)
+    # print(len(words) * 4)
+    dawg_file = open(args.output, "wb")
+    byte_size = 4
+    if EdgeCount < 0x1FFFF:
+        byte_size = 3
+    elif EdgeCount < 0x1FF:
+        byte_size = 2
+    print("{2} will be {0} bytes ({1} byte words)".format(EdgeCount * byte_size, byte_size, args.output))
+    # first byte is final/EOL but also byte size
+    words[0] = words[0] | byte_size
+    for word in words:
+        b = struct.pack("<I", word)
+        dawg_file.write(b[0:byte_size])
+    dawg_file.close()
