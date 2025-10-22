@@ -4,27 +4,34 @@
 #else
 # include <limits.h>
 /* for the C89 fans on decrepit architectures */
+typedef unsigned char uint8_t;
 # if UINT_MAX == 0xFFFFFFFF
 typedef unsigned int uint32_t;
 # elif ULONG_MAX == 0xFFFFFFFF
 typedef unsigned long uint32_t;
 # endif
+# if INT_MAX == 0xFFFFFFFF
+typedef int int32_t;
+# elif LONG_MAX == 0xFFFFFFFF
+typedef long int32_t;
+# endif
 #endif
 
 #include "dawg.h"
 
+#define DAWG_FIRST_INDEX 1
 #define DAWG_FINAL (1 << 5)
 #define DAWG_EOL (1 << 6)
 
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-static inline uint32_t load32le(const unsigned char *src)
+static inline uint32_t load32le(const uint8_t *src)
 {
-	return ((uint32_t)src[0] << 0) | ((uint32_t)src[1] << 8)
-	     | ((uint32_t)src[2] << 16) |((uint32_t)src[3] << 24);
+	return ((uint32_t)src[0] << 0)  | ((uint32_t)src[1] << 8)
+	     | ((uint32_t)src[2] << 16) | ((uint32_t)src[3] << 24);
 }
 #endif
 
-static int dawg_lookup_index(Dawg *dawg, int index, const char *string)
+static int dawg_lookup_index(Dawg *dawg, int32_t index, const char *string)
 {
 	uint32_t word; /* [iiii_iiii...]_iefc_cccc (2-4 bytes) */
 	char character;
@@ -37,7 +44,7 @@ static int dawg_lookup_index(Dawg *dawg, int index, const char *string)
 			return -1;
 		}
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-		word = load32le((const unsigned char*)&word);
+		word = load32le((const uint8_t*)&word);
 #endif
 		index = word >> 7;
 		character = (word & 0x1F) + 0x60; /* 26 -> 0x7A ('z') */
@@ -54,7 +61,7 @@ static int dawg_lookup_index(Dawg *dawg, int index, const char *string)
 
 int dawg_lookup(Dawg *dawg, const char *string)
 {
-	return dawg_lookup_index(dawg, 1, string);
+	return dawg_lookup_index(dawg, DAWG_FIRST_INDEX, string);
 }
 
 int init_dawg_file(Dawg *dawg, const char *filename)
