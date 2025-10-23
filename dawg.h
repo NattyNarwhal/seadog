@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025 Calvin Buckley
+ *
+ * SPDX-License-Identifier: ISC
+ */
+
 #include <stdio.h>
 
 typedef struct Dawg {

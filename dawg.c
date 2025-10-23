@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2025 Calvin Buckley
+ *
+ * SPDX-License-Identifier: ISC
+ */
+
 #include <stdio.h>
 #if __STDC_VERSION__ >= 199901L
 # include <stdint.h>
