@@ -1,4 +1,4 @@
-# Compact DAWGs
+# Seadog: generate and read compact DAWGs
 
 This generates a compact representation of a directed acyclic word graph, a
 data structure, like a trie, useful for looking up words in a dictionary.
