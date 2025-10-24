@@ -23,13 +23,18 @@ typedef long int32_t;
 # endif
 #endif
 
+/* GCC big endian definition */
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define DAWG_SWAP_WORD
+#endif
+
 #include "dawg.h"
 
 #define DAWG_FIRST_INDEX 1
 #define DAWG_FINAL (1 << 5)
 #define DAWG_EOL (1 << 6)
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#ifdef DAWG_SWAP_WORD
 static inline uint32_t load32le(const uint8_t *src)
 {
 	return ((uint32_t)src[0] << 0)  | ((uint32_t)src[1] << 8)
@@ -49,7 +54,7 @@ static int dawg_lookup_index(Dawg *dawg, int32_t index, const char *string)
 		if (1 == fread(&word, 1, dawg->word_size, dawg->file)) {
 			return -1;
 		}
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#ifdef DAWG_SWAP_WORD
 		word = load32le((const uint8_t*)&word);
 #endif
 		index = word >> 7;
