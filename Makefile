@@ -2,7 +2,7 @@ CFLAGS := -Wall -g
 
 .PHONY: all clean check
 
-all: readpup
+all: readpup dumppup
 
 clean:
 	rm -f *.o readpup *.pup
@@ -16,3 +16,5 @@ check: readpup sowpods.pup anagram.pup
 	./readpup anagram.pup house houses hous
 
 readpup: readpup.o dawg.o
+
+dumppup: dumppup.o dawg.o

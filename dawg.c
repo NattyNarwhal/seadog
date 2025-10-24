@@ -70,6 +70,43 @@ int dawg_lookup(Dawg *dawg, const char *string)
 	return dawg_lookup_index(dawg, DAWG_FIRST_INDEX, string);
 }
 
+static int dawg_dump_index(Dawg *dawg, int32_t index, int our_index, char *string)
+{
+	uint32_t word; /* [iiii_iiii...]_iefc_cccc (2-4 bytes) */
+	int32_t new_index;
+	char character;
+	do {
+		if (0 != fseek(dawg->file, index++ * dawg->word_size, SEEK_SET)) {
+			return -1;
+		}
+		word = 0; /* clear high bytes for compact */
+		if (1 == fread(&word, 1, dawg->word_size, dawg->file)) {
+			return -1;
+		}
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+		word = load32le((const uint8_t*)&word);
+#endif
+		new_index = word >> 7;
+		character = (word & 0x1F) + 0x60;
+		string[our_index] = character;
+		string[our_index + 1] = '\0';
+		if (word & DAWG_FINAL) {
+			printf("%s\n", string);
+		}
+		if (new_index) {
+			dawg_dump_index(dawg, new_index, our_index + 1, string);
+		}
+	} while ((word & DAWG_EOL) == 0);
+	/* XXX: It'd be nice to return depth of no match for optimization */
+	return 0;
+}
+
+int dawg_dump(Dawg *dawg)
+{
+	char string[64];
+	return dawg_dump_index(dawg, DAWG_FIRST_INDEX, 0, string);
+}
+
 int init_dawg_file(Dawg *dawg, const char *filename)
 {
 	dawg->file = fopen(filename, "rb");
