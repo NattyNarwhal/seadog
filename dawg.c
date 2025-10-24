@@ -16,9 +16,9 @@ typedef unsigned int uint32_t;
 # elif ULONG_MAX == 0xFFFFFFFF
 typedef unsigned long uint32_t;
 # endif
-# if INT_MAX == 0xFFFFFFFF
+# if INT_MAX == 0x7FFFFFFF
 typedef int int32_t;
-# elif LONG_MAX == 0xFFFFFFFF
+# elif LONG_MAX == 0x7FFFFFFF
 typedef long int32_t;
 # endif
 #endif
