@@ -11,8 +11,8 @@ typedef struct Dawg {
 	int word_size;
 } Dawg;
 
-int init_dawg_file(Dawg *dawg, const char *filename);
-void deinit_dawg(Dawg *dawg);
+int dawg_init_file(Dawg *dawg, const char *filename);
+void dawg_deinit(Dawg *dawg);
 
 /**
  * Returns 1 for successful lookup, 0 if not in DAWG, -1 for I/O error.

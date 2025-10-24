@@ -70,7 +70,7 @@ int dawg_lookup(Dawg *dawg, const char *string)
 	return dawg_lookup_index(dawg, DAWG_FIRST_INDEX, string);
 }
 
-int init_dawg_file(Dawg *dawg, const char *filename)
+int dawg_init_file(Dawg *dawg, const char *filename)
 {
 	dawg->file = fopen(filename, "rb");
 	if (!dawg->file) {
@@ -90,7 +90,7 @@ fail:
 	return -1;
 }
 
-void deinit_dawg(Dawg *dawg)
+void dawg_deinit(Dawg *dawg)
 {
 	if (dawg->file) {
 		fclose(dawg->file);
