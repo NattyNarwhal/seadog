@@ -5,9 +5,29 @@
  */
 
 #include <stdio.h>
+#if __STDC_VERSION__ >= 199901L
+# include <stdint.h>
+#else
+# include <limits.h>
+/* for the C89 fans on decrepit architectures */
+typedef unsigned char uint8_t;
+# if UINT_MAX == 0xFFFFFFFF
+typedef unsigned int uint32_t;
+# elif ULONG_MAX == 0xFFFFFFFF
+typedef unsigned long uint32_t;
+# endif
+# if INT_MAX == 0x7FFFFFFF
+typedef int int32_t;
+# elif LONG_MAX == 0x7FFFFFFF
+typedef long int32_t;
+# endif
+#endif
 
 typedef struct Dawg {
 	FILE *file;
+	uint32_t edge_count;
+	uint32_t word_count;
+	uint32_t node_count;
 	int word_size;
 } Dawg;
 

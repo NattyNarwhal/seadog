@@ -4,31 +4,12 @@
  * SPDX-License-Identifier: ISC
  */
 
-#include <stdio.h>
-#if __STDC_VERSION__ >= 199901L
-# include <stdint.h>
-#else
-# include <limits.h>
-/* for the C89 fans on decrepit architectures */
-typedef unsigned char uint8_t;
-# if UINT_MAX == 0xFFFFFFFF
-typedef unsigned int uint32_t;
-# elif ULONG_MAX == 0xFFFFFFFF
-typedef unsigned long uint32_t;
-# endif
-# if INT_MAX == 0x7FFFFFFF
-typedef int int32_t;
-# elif LONG_MAX == 0x7FFFFFFF
-typedef long int32_t;
-# endif
-#endif
+#include "dawg.h"
 
 /* GCC big endian definition */
 #if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define DAWG_SWAP_WORD
 #endif
-
-#include "dawg.h"
 
 #define DAWG_FIRST_INDEX 1
 #define DAWG_FINAL (1 << 5)
@@ -42,21 +23,31 @@ static inline uint32_t load32le(const uint8_t *src)
 }
 #endif
 
+static uint32_t dawg_read_word(Dawg *dawg)
+{
+	uint32_t word;
+	word = 0; /* clear high bytes for compact */
+	if (1 == fread(&word, 1, dawg->word_size, dawg->file)) {
+		return -1;
+	}
+#ifdef DAWG_SWAP_WORD
+	word = load32le((const uint8_t*)&word);
+#endif
+	return word;
+}
+
 static int dawg_lookup_index(Dawg *dawg, int32_t index, const char *string)
 {
 	uint32_t word; /* [iiii_iiii...]_iefc_cccc (2-4 bytes) */
 	char character;
-	if (0 != fseek(dawg->file, index * dawg->word_size, SEEK_SET)) {
+	if (!index || 0 != fseek(dawg->file, index * dawg->word_size, SEEK_SET)) {
 		return -1;
 	}
 	do {
-		word = 0; /* clear high bytes for compact */
-		if (1 == fread(&word, 1, dawg->word_size, dawg->file)) {
+		word = dawg_read_word(dawg);
+		if (0 == word) {
 			return -1;
 		}
-#ifdef DAWG_SWAP_WORD
-		word = load32le((const uint8_t*)&word);
-#endif
 		index = word >> 7;
 		character = (word & 0x1F) + 0x60; /* 26 -> 0x7A ('z') */
 		if (string[0] == character && string[1] == '\0'
@@ -77,6 +68,7 @@ int dawg_lookup(Dawg *dawg, const char *string)
 
 int dawg_init_file(Dawg *dawg, const char *filename)
 {
+	int word_size; /* temporary */
 	dawg->file = fopen(filename, "rb");
 	if (!dawg->file) {
 		goto fail;
@@ -87,11 +79,36 @@ int dawg_init_file(Dawg *dawg, const char *filename)
 			|| dawg->word_size < 2) {
 		goto fail;
 	}
+	/* now that we know byte size, read the whole word for index */
+	rewind(dawg->file);
+	dawg->edge_count = dawg_read_word(dawg);
+	if (0 == dawg->edge_count) {
+		goto fail;
+	}
+	dawg->edge_count >>= 7;
+	/* check if EOL bit is set in last index node (sanity check) */
+	if (-1 == fseek(dawg->file, (dawg->edge_count + 1) * dawg->word_size, SEEK_SET)) {
+		goto fail;
+	}
+	if (0 == (dawg_read_word(dawg) & DAWG_EOL)) {
+		goto fail;
+	}
+	/* actual last words in file for word and edge count, always 4 bytes */
+	if (-1 == fseek(dawg->file, -8, SEEK_END)) {
+		goto fail;
+	}
+	/* swap b/c it's likely faster than adding another branch to read */
+	word_size = dawg->word_size;
+	dawg->word_size = 4;
+	dawg->word_count = dawg_read_word(dawg);
+	dawg->node_count = dawg_read_word(dawg);
+	if (0 == dawg->word_count) {
+		goto fail;
+	}
+	dawg->word_size = word_size;
 	return 0;
 fail:
-	if (dawg->file) {
-		fclose(dawg->file);
-	}
+	dawg_deinit(dawg);
 	return -1;
 }
 
@@ -99,5 +116,6 @@ void dawg_deinit(Dawg *dawg)
 {
 	if (dawg->file) {
 		fclose(dawg->file);
+		dawg->file = NULL;
 	}
 }

@@ -243,9 +243,10 @@ for word in words:
 dawg.finish()
 print("Dawg creation took {0} s".format(time.time()-start))
 
+NodeCount = dawg.nodeCount()
 EdgeCount = dawg.edgeCount()
 print("Read {0} words into {1} nodes and {2} edges".format(
-    WordCount, dawg.nodeCount(), EdgeCount))
+    WordCount, NodeCount, EdgeCount))
 
 if args.output:
     dawg.renumber()
@@ -260,9 +261,18 @@ if args.output:
     elif EdgeCount < 0x1FF:
         byte_size = 2
     print("{2} will be {0} bytes ({1} byte words)".format(EdgeCount * byte_size, byte_size, args.output))
-    # first byte is final/EOL but also byte size
-    words[0] = words[0] | byte_size
+    # ensure last word has EOL; make sure iterating past edge word won't work
+    if (words[-1] & (1 << 6)) == 0:
+        raise Exception("Last word does not have end of list bit set")
+    # first byte is final/EOL but also byte size and edge count
+    words[0] = (1 << 5) | (1 << 6) | byte_size | ((EdgeCount & 0x1FFFFFF) << 7)
     for word in words:
         b = struct.pack("<I", word)
         dawg_file.write(b[0:byte_size])
+    # last words are word count (always 4 bytes, as wordCount can > edgeCount)
+    # and then node count
+    b = struct.pack("<I", WordCount)
+    dawg_file.write(b)
+    b = struct.pack("<I", NodeCount)
+    dawg_file.write(b)
     dawg_file.close()

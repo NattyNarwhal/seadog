@@ -34,8 +34,10 @@ The dictionary used to build a DAWG will have cases crushed to lower case and
 any non-alphabetical characters will be stripped.
 
 The words are stored little endian. The first word is a "null" word, with the
-final and EOL bits set, and the character index used for indicating the word
-size. The second word is the index of the root node, where lookups start.
+final and EOL bits set, the character index used for indicating the word size,
+and the index used for the count of edges in the DAWG. The second word is the
+index of the root node, where lookups start.
+
 Because the first word is stored little endian, you can read the first byte,
 mask for the character, and determine the word size for future index reads.
 
@@ -61,6 +63,10 @@ or needing an index of node positions.
  \-------------------------------------- four byte words
 ```
 
+The last word for edges should have the EOL bit to avoid overruns. After the
+words used for edges, a 32-bit integer stores the word count, and another one
+for the node count.
+
 ### Size
 
 The resulting DAWG is surprisingly efficient. Despite not being as tightly
@@ -84,8 +90,6 @@ Using the corpus from James Cherry's anagram program and SOWPODS:
 
 ## Possible optimizations and changes
 
-* Include node/edge/word count: Edge count in index seems possible to include
-  in the first word, could add additional words at end for other info.
 * Character mappings, to make it possible to use more than just `[a-z]`, or a
   means to widen the character address space at the cost of the index size.
 * Variable length words: Would complicate indexing without a lot of additional
