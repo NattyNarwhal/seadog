@@ -244,7 +244,7 @@ dawg.finish()
 print("Dawg creation took {0} s".format(time.time()-start))
 
 NodeCount = dawg.nodeCount()
-EdgeCount = dawg.edgeCount()
+EdgeCount = dawg.edgeCount() + len(dawg.root.edges)
 print("Read {0} words into {1} nodes and {2} edges".format(
     WordCount, NodeCount, EdgeCount))
 
