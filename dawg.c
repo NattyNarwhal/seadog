@@ -27,8 +27,8 @@ static uint32_t dawg_read_word(Dawg *dawg)
 {
 	uint32_t word;
 	word = 0; /* clear high bytes for compact */
-	if (1 == fread(&word, 1, dawg->word_size, dawg->file)) {
-		return -1;
+	if (1 != fread(&word, dawg->word_size, 1, dawg->file)) {
+		return 0;
 	}
 #ifdef DAWG_SWAP_WORD
 	word = load32le((const uint8_t*)&word);
