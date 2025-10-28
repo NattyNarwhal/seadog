@@ -87,22 +87,19 @@ int dawg_init_file(Dawg *dawg, const char *filename)
 	}
 	dawg->edge_count >>= 7;
 	/* check if EOL bit is set in last index node (sanity check) */
-	if (-1 == fseek(dawg->file, (dawg->edge_count + 1) * dawg->word_size, SEEK_SET)) {
+	if (-1 == fseek(dawg->file, dawg->edge_count * dawg->word_size, SEEK_SET)) {
 		goto fail;
 	}
 	if (0 == (dawg_read_word(dawg) & DAWG_EOL)) {
 		goto fail;
 	}
 	/* actual last words in file for word and edge count, always 4 bytes */
-	if (-1 == fseek(dawg->file, -8, SEEK_END)) {
-		goto fail;
-	}
 	/* swap b/c it's likely faster than adding another branch to read */
 	word_size = dawg->word_size;
 	dawg->word_size = 4;
 	dawg->word_count = dawg_read_word(dawg);
 	dawg->node_count = dawg_read_word(dawg);
-	if (0 == dawg->word_count) {
+	if (0 == dawg->word_count || 0 == dawg->node_count) {
 		goto fail;
 	}
 	dawg->word_size = word_size;
